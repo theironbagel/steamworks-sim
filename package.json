@@ -1,0 +1,13 @@
+{
+  "name": "steamworks-sim",
+  "private": true,
+  "version": "0.0.0",
+  "workspaces": [
+    "sim",
+    "client"
+  ],
+  "scripts": {
+    "dev": "npm run dev --workspace client",
+    "build": "npm run build --workspace client"
+  }
+}

@@ -1,0 +1,27 @@
+:root {
+  color-scheme: dark;
+}
+
+body {
+  margin: 0;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 1rem;
+  background: #111;
+  color: #eee;
+  font-family: system-ui, sans-serif;
+}
+
+#field {
+  border: 2px solid #444;
+  max-width: 90vw;
+  max-height: 70vh;
+}
+
+p {
+  opacity: 0.7;
+  font-size: 0.9rem;
+}
