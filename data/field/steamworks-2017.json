@@ -1,0 +1,168 @@
+{
+  "_source": {
+    "primary": "https://firstfrc.blob.core.windows.net/frc2017/Manual/Sections/03-Arena.pdf",
+    "drawings": [
+      "https://firstfrc.blob.core.windows.net/frc2017/Drawings/2017BasicFieldDrawings.pdf",
+      "https://firstfrc.blob.core.windows.net/frc2017/Drawings/2017FieldAssembly.pdf",
+      "https://firstfrc.blob.core.windows.net/frc2017/Drawings/2017FieldComponents.pdf",
+      "https://firstfrc.blob.core.windows.net/frc2017/Drawings/2017TeamVersions.pdf"
+    ],
+    "note": "Sizes, heights and wall-relative distances below are transcribed directly from the 2017 Game Manual, Section 3 (Arena). The manual states distances FROM reference surfaces (alliance wall, boiler face, etc.) rather than giving a single XY coordinate table, so it does not by itself fix exact X/Y placement for the sim. 'coords' blocks below are a first-pass placement derived from those distances plus the field's mirror symmetry (blue <-> red across the centerline, and left <-> right across the field's long axis) — treat them as a working draft to check against the dimensioned drawings PDFs above (2017TeamVersions.pdf especially) before Stage 1 collision geometry is built."
+  },
+
+  "units": "inches unless noted",
+
+  "coordinateSystem": {
+    "origin": "blue alliance wall, at the field's near-side (low-Y) edge",
+    "xAxis": "along the field's long axis (54ft4in), increasing from blue alliance wall (x=0) toward red alliance wall (x=652)",
+    "yAxis": "along the field's short axis (27ft), increasing left-to-right when standing at the blue alliance wall facing red",
+    "mirroring": "red-alliance geometry = blue-alliance geometry reflected through x=326 (the field's x-midpoint); everything already symmetric across y=162 (the field's y-midpoint) unless noted"
+  },
+
+  "field": {
+    "widthIn": 324,
+    "lengthIn": 652,
+    "widthFt": "27 ft",
+    "lengthFt": "54 ft 4 in"
+  },
+
+  "startingConfiguration": {
+    "startingLine": { "distanceFromAllianceWallIn": 30, "note": "2 ft 6 in behind the alliance wall diamond plate" }
+  },
+
+  "zones": {
+    "baseLine": { "distanceFromAllianceWallIn": 93.25, "note": "7 ft 9.25 in from the alliance wall diamond plate" },
+    "key": { "farEdgeDistanceFromBoilerFaceIn": 52, "note": "far edge is 4 ft 4 in from the front face of the boiler" },
+    "retrievalZone": { "farEdgeDistanceFromLoadingStationFaceIn": 42, "note": "far edge is 3 ft 6 in from the front face of the loading station" },
+    "launchpadLine": { "note": "collinear with the edge of the airship deck closest to the field's center" },
+    "allianceStation": { "widthIn": 105.75, "heightNote": "infinitely tall volume", "depthIn": 277.5, "note": "8 ft 9.75 in by 23 ft 1.5 in footprint behind the alliance wall" }
+  },
+
+  "airship": {
+    "perAlliance": true,
+    "coords": {
+      "blue": { "xCenterIn": 0, "note": "sits against/adjacent to the blue alliance wall, centered on y=162; exact x-depth of the structure not yet pulled from the drawings" },
+      "red": { "xCenterIn": 652, "note": "mirror of blue" }
+    },
+    "hexDeck": {
+      "widthIn": 70.5,
+      "heightAboveCarpetIn": 36.5,
+      "note": "5 ft 10.5 in wide hex deck, 3 ft 0.5 in above the field carpet"
+    },
+    "railHexagon": {
+      "widthIn": 101,
+      "heightAboveDeckIn": 42.5,
+      "note": "8 ft 5 in wide, 3 ft 6.5 in above the deck"
+    },
+    "polycarbonateWallAngleDeg": 75,
+    "ports": {
+      "widthIn": 13,
+      "heightIn": 19.5,
+      "note": "openings adjacent to each lift"
+    },
+    "rotors": {
+      "central": { "heightAboveDeckIn": 101, "note": "8 ft 5 in above the deck" },
+      "perimeter": { "count": 3, "heightAboveDeckIn": 96.75, "note": "8 ft 0.75 in above the deck" },
+      "activationOrder": "strictly sequential; rotor 3 starts with 1 gear pre-installed, rotor 4 with 2",
+      "gearsNeeded": [1, 2, 4, 6],
+      "crankTurnsNeededRotors2to4": 3,
+      "idleResetSeconds": 10
+    },
+    "lift": {
+      "pegHeightFromCarpetIn": 13,
+      "pegProtrusionIn": 10.5,
+      "note": "peg height measured with the carriage all the way down"
+    },
+    "touchpad": {
+      "heightAboveCarpetIn": 58,
+      "plateDiameterIn": 10,
+      "cutoutWidthIn": 3,
+      "cutoutDepthIn": 6,
+      "deployWindowSeconds": 30,
+      "pressHoldSeconds": 1
+    },
+    "davit": {
+      "extensionFromRailingIn": 11,
+      "fingerSpacingIn": 1
+    },
+    "rope": {
+      "nominalDiameterIn": 1,
+      "lengthIn": 86,
+      "material": "polypropylene"
+    }
+  },
+
+  "boiler": {
+    "perAlliance": true,
+    "location": "field corner, opposite the scoring table, on the scoring-table diagonal",
+    "coords": {
+      "blue": { "note": "corner of the field on blue's end, opposite the scoring table; exact corner (near/far side) not yet confirmed against the drawing" },
+      "red": { "note": "mirror of blue" }
+    },
+    "base": { "widthIn": 42, "depthIn": 42, "heightIn": 97, "note": "3 ft 6 in x 3 ft 6 in x 8 ft 1 in" },
+    "highGoal": {
+      "shape": "vertical cylinder",
+      "diameterIn": 21.5,
+      "heightAboveCarpetIn": 97,
+      "horizontalOffsetIn": 17.5,
+      "capacity": 150
+    },
+    "lowGoal": {
+      "openingWidthIn": 25,
+      "openingHeightIn": 8.75,
+      "heightAboveCarpetIn": 18,
+      "capacity": 70
+    },
+    "processingRateFuelPerSecondPerGoal": 5
+  },
+
+  "hoppers": {
+    "count": 5,
+    "dims": { "widthIn": 26.5, "depthIn": 23.25, "heightIn": 46 },
+    "depositFloorHeightAboveCarpetIn": 24.625,
+    "capacityEach": 100,
+    "positions": [
+      { "side": "scoringTable", "distanceFromAllianceWallIn": 165.5, "note": "2 hoppers, 13 ft 9.5 in from the alliance walls" },
+      { "side": "opposite", "distanceFromAllianceWallIn": 78.5, "note": "2 hoppers, 6 ft 6.5 in from the alliance walls" },
+      { "side": "opposite", "distanceFromAllianceWallIn": null, "note": "1 hopper, centered opposite (exact offset not given as a wall distance in the manual text)" }
+    ]
+  },
+
+  "loadingStations": {
+    "overflow": {
+      "perAlliance": true,
+      "location": "two player stations away from each boiler",
+      "panel": { "heightIn": 78, "widthIn": 30 },
+      "opening": { "edgeMarginIn": 2.5, "widthIn": 25, "heightIn": 7.5, "heightAboveCarpetIn": 25 },
+      "shelf": { "widthIn": 24, "lengthIn": 36, "angleDeg": 72, "heightAboveCarpetIn": 43.375 },
+      "feedsOnly": "fuel"
+    },
+    "return": {
+      "perAlliance": true,
+      "location": "corner opposite the boiler",
+      "panel": { "heightIn": 78, "widthIn": 75.5, "openings": 2 },
+      "opening": { "edgeMarginIn": 2.5, "widthIn": 25, "heightIn": 7.5, "heightAboveCarpetIn": 25 },
+      "shelves": { "count": 2, "widthIn": 24, "lengthIn": 36, "angleDeg": 72, "heightAboveCarpetIn": 43.375 },
+      "feeds": "fuel and gears"
+    },
+    "setupPerLane": { "fuel": 20, "gears": 18 },
+    "reserveGearPerAirship": 1
+  },
+
+  "gamePieces": {
+    "fuel": { "shape": "sphere", "nominalDiameterIn": 5, "weightOz": 2.6, "material": "Gopher ResisDent polyethylene" },
+    "gear": { "outerDiameterIn": 11, "pitchDiameterIn": 10, "thicknessIn": 2, "weightOz": 18.4 }
+  },
+
+  "robotPreload": {
+    "gears": 1,
+    "fuel": 10,
+    "note": "each robot starts touching its alliance wall"
+  },
+
+  "timing": {
+    "autoSeconds": 15,
+    "teleopSeconds": 135,
+    "endgameSeconds": 30
+  }
+}
