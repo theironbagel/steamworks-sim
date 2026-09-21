@@ -412,6 +412,9 @@ export function wallVisuals(): BoxShape[] {
 export const HOPPER_WIDTH_IN = 26.5; // along the wall (field X)
 export const HOPPER_DEPTH_IN = 23.25; // out from the wall (field Y)
 export const HOPPER_HEIGHT_IN = 46;
+/** A hopper is a clear bin held up on four legs, not a box sitting on the
+ * carpet -- the floor sits at fuel-intake height, per the reference photos. */
+export const HOPPER_FLOOR_HEIGHT_IN = 24.625;
 /** Strike plate: "1 ft. 3 in. high, 1 ft. 10 in. long, 2 in. above the carpet." */
 export const HOPPER_PLATE_HEIGHT_IN = 15;
 export const HOPPER_PLATE_WIDTH_IN = 22;

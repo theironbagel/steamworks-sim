@@ -57,6 +57,7 @@ import {
   LOADING_SHELF_HEIGHT_IN,
   LOADING_SHELF_ANGLE_RAD,
   HOPPER_HEIGHT_IN,
+  HOPPER_FLOOR_HEIGHT_IN,
   HOPPER_PLATE_HEIGHT_IN,
   HOPPER_PLATE_WIDTH_IN,
   HOPPER_PLATE_ABOVE_CARPET_IN,
@@ -743,27 +744,118 @@ function addLoadingStation(group: THREE.Group, shape: BoxShape, color: number, p
 
 function addHopper(group: THREE.Group, hopper: BoxShape, palette: FieldPalette): void {
   const rotation = hopper.rotation ?? 0;
-  // Solid steel base with a glazed bin above it -- hoppers are open
-  // containers holding ~100 fuel, and a plain grey block read as just
-  // another crate on the wall.
-  group.add(boxMeshFor(hopper, 22, 0, solid(STEEL)));
-  group.add(boxMeshFor(hopper, HOPPER_HEIGHT_IN - 24, 22, glass(0xcfd8e0, 0.3)));
-  group.add(boxMeshFor({ ...hopper, width: hopper.width + 2, depth: hopper.depth + 2 }, 3, HOPPER_HEIGHT_IN - 3, solid(DARK_STEEL)));
-  // A suggestion of the fuel inside.
-  group.add(boxMeshFor({ ...hopper, width: hopper.width - 4, depth: hopper.depth - 4 }, 9, 22, solid(palette.accent)));
 
-  // Strike plate: the panel a robot pushes to dump the hopper. Amber so
-  // it reads as the interactive part rather than more grey box.
-  // Width along the hopper's face (geometry Z), thin on X.
+  // A hopper is NOT a box sitting on the carpet -- it's a clear
+  // polycarbonate bin held up on four slender legs, floor at
+  // HOPPER_FLOOR_HEIGHT_IN so fuel spills out at robot-intake height,
+  // with a separate yellow strike plate that's the part a robot
+  // actually pushes. A grounded solid block read as just another
+  // crate against the wall.
+  //
+  // Built as its own local group (position + rotation.y set once) so
+  // the legs, frame posts and fuel scatter can be placed in plain
+  // local (x, z) offsets rather than re-deriving fieldToThree for each
+  // one. This file's axis convention (see boxMeshFor) has shape.depth
+  // (field Y) along local X and shape.width (field X) along local Z --
+  // matching that keeps a bare `rotation.y = rotation` correct here
+  // exactly like it is for every boxMeshFor-built shape in this file.
+  const hopperGroup = new THREE.Group();
+  const center = fieldToThree(hopper.x, hopper.y);
+  hopperGroup.position.set(center.x, 0, center.z);
+  hopperGroup.rotation.y = rotation;
+  group.add(hopperGroup);
+
+  const hd = inToFt(hopper.depth) / 2; // local X half-extent
+  const hw = inToFt(hopper.width) / 2; // local Z half-extent
+  const floorFt = inToFt(HOPPER_FLOOR_HEIGHT_IN);
+  const topFt = inToFt(HOPPER_HEIGHT_IN);
+  const legMat = solid(STEEL);
+  const frameMat = solid(DARK_STEEL);
+
+  // Four legs, one per corner, with low cross-bracing as in the
+  // reference photos.
+  const inset = inToFt(1);
+  for (const sx of [-1, 1]) {
+    for (const sz of [-1, 1]) {
+      hopperGroup.add(strut(
+        new THREE.Vector3(sx * (hd - inset), 0, sz * (hw - inset)),
+        new THREE.Vector3(sx * (hd - inset), floorFt, sz * (hw - inset)),
+        inToFt(1.4),
+        legMat
+      ));
+    }
+  }
+  for (const sz of [-1, 1]) {
+    const brace = new THREE.Mesh(new THREE.BoxGeometry(hd * 2 - inset * 2, inToFt(1), inToFt(1)), legMat);
+    brace.position.set(0, floorFt * 0.3, sz * (hw - inset));
+    hopperGroup.add(brace);
+  }
+
+  // Deposit floor, then the clear bin above it (open-topped -- no lid).
+  const floor = new THREE.Mesh(new THREE.BoxGeometry(hd * 2, inToFt(1.2), hw * 2), legMat);
+  floor.position.y = floorFt;
+  hopperGroup.add(floor);
+
+  const bin = new THREE.Mesh(new THREE.BoxGeometry(hd * 2, topFt - floorFt, hw * 2), glass(0xcfd8e0, 0.16));
+  bin.position.y = floorFt + (topFt - floorFt) / 2;
+  hopperGroup.add(bin);
+
+  // Frame posts at the bin's corners and a rim bar at its top, so the
+  // bin reads as built tubing-and-glass rather than a tinted slab.
+  for (const sx of [-1, 1]) {
+    for (const sz of [-1, 1]) {
+      hopperGroup.add(strut(
+        new THREE.Vector3(sx * hd, floorFt, sz * hw),
+        new THREE.Vector3(sx * hd, topFt, sz * hw),
+        inToFt(1),
+        frameMat
+      ));
+    }
+  }
+  const rim = new THREE.Mesh(new THREE.BoxGeometry(hd * 2 + inToFt(2), inToFt(1.2), hw * 2 + inToFt(2)), frameMat);
+  rim.position.y = topFt;
+  hopperGroup.add(rim);
+
+  // A visible scatter of fuel inside the bin -- visual only (Stage 2
+  // replaces this with real simulated fuel), but an empty glass box
+  // reads as broken rather than "full of ~100 fuel."
+  const fuelDia = inToFt(5);
+  const fuelGeo = new THREE.SphereGeometry(fuelDia / 2, 8, 6);
+  const fuelMat = solid(palette.accent);
+  const cols = 3;
+  const rows = 3;
+  for (let l = 0; l < 2; l++) {
+    for (let c = 0; c < cols; c++) {
+      for (let r = 0; r < rows; r++) {
+        const jitter = ((c * 7 + r * 13 + l * 19) % 5) / 10 - 0.2;
+        const fuel = new THREE.Mesh(fuelGeo, fuelMat);
+        fuel.position.set(
+          -hd + fuelDia * (0.5 + c) + jitter * fuelDia * 0.4,
+          floorFt + inToFt(1.5) + fuelDia / 2 + l * fuelDia * 0.85,
+          -hw + fuelDia * (0.5 + r) + jitter * fuelDia * 0.4
+        );
+        hopperGroup.add(fuel);
+      }
+    }
+  }
+
+  // Strike plate: the panel a robot pushes to dump the hopper, on the
+  // same local-+X face the original flat offset used (matching
+  // rotateOffset(0, +depth/2, rotation)'s convention elsewhere in this
+  // file). Amber so it reads as the interactive part.
   const plate = new THREE.Mesh(
     new THREE.BoxGeometry(inToFt(2), inToFt(HOPPER_PLATE_HEIGHT_IN), inToFt(HOPPER_PLATE_WIDTH_IN)),
     solid(palette.accent)
   );
-  const local = rotateOffset(0, hopper.depth / 2 + 0.5, rotation);
-  const p = fieldToThree(hopper.x + local.dx, hopper.y + local.dy);
-  plate.position.set(p.x, inToFt(HOPPER_PLATE_ABOVE_CARPET_IN + HOPPER_PLATE_HEIGHT_IN / 2), p.z);
-  plate.rotation.y = rotation;
-  group.add(plate);
+  plate.position.set(hd + inToFt(1), inToFt(HOPPER_PLATE_ABOVE_CARPET_IN + HOPPER_PLATE_HEIGHT_IN / 2), 0);
+  hopperGroup.add(plate);
+  const lip = new THREE.Mesh(
+    new THREE.BoxGeometry(inToFt(6), inToFt(1.2), inToFt(HOPPER_PLATE_WIDTH_IN)),
+    solid(palette.accent)
+  );
+  lip.position.set(hd + inToFt(4), inToFt(1.4), 0);
+  lip.rotation.z = THREE.MathUtils.degToRad(14);
+  hopperGroup.add(lip);
 }
 
 // =====================================================================
