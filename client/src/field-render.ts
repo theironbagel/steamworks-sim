@@ -292,33 +292,75 @@ function addAirship(
   const deckFt = inToFt(deckIn);
   const railTopFt = inToFt(deckIn + AIRSHIP_RAIL_HEIGHT_ABOVE_DECK_IN);
 
-  // 1. Hull: a copper cone widening from a narrow foot up to the deck.
-  //    The reference render's airship is clearly waisted like this, not
-  //    a straight-sided drum -- it reads as a gondola slung under the
-  //    deck rather than a hexagonal bucket.
+  // 1. Pedestal: an OPEN hexagonal lattice narrowing toward the carpet --
+  //    six leaning corner posts and six arched panels, not a solid cone.
+  //    The approved reference render shows straight through it to the
+  //    carpet and the structure behind; a solid taperedPrism hull (the
+  //    previous approach here) reads as a sealed gondola instead.
   const deckPts = localHex(shape, AIRSHIP_CIRCUMRADIUS_IN);
   const footPts = localHex(shape, AIRSHIP_CIRCUMRADIUS_IN * 0.58);
-  const hull = taperedPrism(footPts, deckPts, 0, deckFt, solidTwoSided(COPPER), false);
-  hull.position.set(center.x, 0, center.z);
-  group.add(hull);
+  const postMat = solidTwoSided(COPPER);
+  for (let i = 0; i < 6; i++) {
+    group.add(strut(
+      new THREE.Vector3(center.x + footPts[i].x, 0, center.z + footPts[i].z),
+      new THREE.Vector3(center.x + deckPts[i].x, deckFt, center.z + deckPts[i].z),
+      inToFt(3.4),
+      postMat
+    ));
+  }
+  const archMat = solidTwoSided(COPPER_DARK);
+  for (let i = 0; i < 6; i++) {
+    const j = (i + 1) % 6;
+    group.add(panelFromCorners(
+      new THREE.Vector3(center.x + footPts[i].x, 0, center.z + footPts[i].z),
+      new THREE.Vector3(center.x + footPts[j].x, 0, center.z + footPts[j].z),
+      new THREE.Vector3(center.x + deckPts[i].x, deckFt, center.z + deckPts[i].z),
+      new THREE.Vector3(center.x + deckPts[j].x, deckFt, center.z + deckPts[j].z),
+      inToFt(1.2),
+      archMat
+    ));
+  }
 
-  // A darker skirt at the very bottom, where the real airship's base
-  // framing and the lift machinery sit.
-  const skirt = prism(footPts, 0, inToFt(10), solidTwoSided(DECK_DARK));
-  skirt.position.set(center.x, 0, center.z);
-  group.add(skirt);
+  // No solid core -- on the real airship you see straight through the
+  // arches to the carpet and the structure behind. Only a slim central
+  // post is there.
+  group.add(strut(
+    new THREE.Vector3(center.x, inToFt(2), center.z),
+    new THREE.Vector3(center.x, deckFt - inToFt(2), center.z),
+    inToFt(6),
+    solid(0x4a4e55)
+  ));
 
-  // 2. Deck: the platform the pilots stand on, slightly overhanging the
-  //    hull, in alliance color so you can tell the airships apart at a
-  //    glance (the real ones are both copper and rely on position).
-  const deckSlab = prism(localHex(shape, AIRSHIP_CIRCUMRADIUS_IN * 1.05), deckFt, deckFt + inToFt(4), solidTwoSided(color));
+  // Outrigger feet: three long steel pads on the carpet, straddling
+  // alternating pedestal corners, holding the whole hexagon a hair off
+  // the ground -- visible in the reference as the angled grey feet
+  // peeking from under the copper base.
+  const footMaterial = solid(STEEL);
+  for (let i = 0; i < 6; i += 2) {
+    const j = (i + 1) % 6;
+    const fx = (footPts[i].x + footPts[j].x) / 2;
+    const fz = (footPts[i].z + footPts[j].z) / 2;
+    const len = Math.hypot(footPts[j].x - footPts[i].x, footPts[j].z - footPts[i].z);
+    const outward = Math.hypot(fx, fz) || 1;
+    const foot = new THREE.Mesh(new THREE.BoxGeometry(inToFt(2.5), inToFt(2.5), len * 1.35), footMaterial);
+    foot.position.set(center.x + fx * 1.2, inToFt(1.25), center.z + fz * 1.2);
+    foot.rotation.y = Math.atan2(fx / outward, fz / outward);
+    group.add(foot);
+  }
+
+  // 2. Deck: the dark steel platform the pilots stand on, embedded flush
+  //    with the arch tops -- NOT alliance-colored, per the reference
+  //    (alliance color there reads as a sealed colored lid, not a deck).
+  const deckSlab = prism(localHex(shape, AIRSHIP_CIRCUMRADIUS_IN * 1.02), deckFt - inToFt(3), deckFt, solidTwoSided(DECK_DARK));
   deckSlab.position.set(center.x, 0, center.z);
   group.add(deckSlab);
 
-  // 3. Railing: six posts leaning out to the rail hexagon (the manual's
-  //    75-degree flare), with a faint glazed panel between them.
+  // 3. Railing: six copper posts leaning out to the rail hexagon (the
+  //    manual's 75deg flare), with two horizontal copper rings partway
+  //    up (visible in the reference as dark bands around the railing)
+  //    and a faint glazed panel between the posts.
   const railPts = localHex(shape, AIRSHIP_RAIL_CIRCUMRADIUS_IN);
-  const postMaterial = solid(color);
+  const postMaterial = solidTwoSided(COPPER);
   for (let i = 0; i < deckPts.length; i++) {
     group.add(strut(
       new THREE.Vector3(center.x + deckPts[i].x, deckFt, center.z + deckPts[i].z),
@@ -331,8 +373,25 @@ function addAirship(
   glazing.position.set(center.x, 0, center.z);
   group.add(glazing);
 
-  // 4. Rail cap: six bars around the rim, NOT a filled hex -- the
-  //    airship is open on top, the pilots work inside it.
+  for (const f of [0.4, 0.76]) {
+    const ringPts = localHex(shape, AIRSHIP_CIRCUMRADIUS_IN + (AIRSHIP_RAIL_CIRCUMRADIUS_IN - AIRSHIP_CIRCUMRADIUS_IN) * f);
+    const ringY = deckFt + (railTopFt - deckFt) * f;
+    for (let i = 0; i < ringPts.length; i++) {
+      const a = ringPts[i];
+      const b = ringPts[(i + 1) % ringPts.length];
+      group.add(strut(
+        new THREE.Vector3(center.x + a.x, ringY, center.z + a.z),
+        new THREE.Vector3(center.x + b.x, ringY, center.z + b.z),
+        inToFt(1.8),
+        postMaterial
+      ));
+    }
+  }
+
+  // 4. Rail cap: six dark steel bars around the rim, NOT a filled hex and
+  //    NOT alliance-colored -- the airship is open on top, the pilots
+  //    work inside it, and the cap reads as a thin dark ring.
+  const capMaterial = solid(DECK_DARK);
   for (let i = 0; i < railPts.length; i++) {
     const a = railPts[i];
     const b = railPts[(i + 1) % railPts.length];
@@ -340,7 +399,7 @@ function addAirship(
       new THREE.Vector3(center.x + a.x, railTopFt, center.z + a.z),
       new THREE.Vector3(center.x + b.x, railTopFt, center.z + b.z),
       inToFt(3),
-      postMaterial
+      capMaterial
     ));
   }
 
@@ -374,9 +433,21 @@ function addAirship(
       group.add(tick);
     }
   }
-  const cap = prism(polyLocal(6, STEAM_TANK_DIAGONAL_IN / 2 + 1.5), inToFt(tankTopIn), inToFt(tankTopIn + 5), solidTwoSided(palette.accent));
+  const cap = prism(polyLocal(6, STEAM_TANK_DIAGONAL_IN / 2 + 1.5), inToFt(tankTopIn), inToFt(tankTopIn + 5), solidTwoSided(COPPER_DARK));
   cap.position.set(center.x, 0, center.z);
   group.add(cap);
+
+  // Signal lamp on a short post beside the tank cap, as in the reference.
+  const lampPostTopFt = inToFt(tankTopIn + 8);
+  group.add(strut(
+    new THREE.Vector3(center.x + inToFt(STEAM_TANK_DIAGONAL_IN * 0.28), inToFt(tankTopIn), center.z + inToFt(STEAM_TANK_DIAGONAL_IN * 0.14)),
+    new THREE.Vector3(center.x + inToFt(STEAM_TANK_DIAGONAL_IN * 0.28), lampPostTopFt, center.z + inToFt(STEAM_TANK_DIAGONAL_IN * 0.14)),
+    inToFt(1.4),
+    solid(COPPER_DARK)
+  ));
+  const lamp = new THREE.Mesh(new THREE.BoxGeometry(inToFt(4.5), inToFt(7), inToFt(4.5)), solid(0xe8c355));
+  lamp.position.set(center.x + inToFt(STEAM_TANK_DIAGONAL_IN * 0.28), lampPostTopFt + inToFt(4), center.z + inToFt(STEAM_TANK_DIAGONAL_IN * 0.14));
+  group.add(lamp);
 
   // 6. Mast + the four ROTORS. This is the airship's silhouette: one
   //    big helical rotor high on the central mast and three smaller
@@ -445,15 +516,26 @@ function addAirship(
     group.add(barrier);
   }
 
-  // 8. Ropes from the rail to the carpet on the three faces away from
-  //    the alliance wall, with a touchpad above each.
+  // 8. Davits + ropes from the rail to the carpet on the three faces away
+  //    from the alliance wall, with a touchpad above each. The davit --
+  //    a long dark horizontal arm reaching from the tank out past the
+  //    railing -- is one of the boldest lines on the real airship, so it
+  //    runs the full deck radius rather than stopping at the rail.
   const ropeMaterial = solid(0xd8c9a8);
   const padMaterial = solid(palette.background);
+  const davitMaterial = solid(DECK_DARK);
   const base = alliance === "blue" ? 0 : Math.PI;
   for (const deg of [-60, 0, 60]) {
     const a = base + (deg * Math.PI) / 180;
     const rIn = AIRSHIP_RAIL_CIRCUMRADIUS_IN * 0.85;
     const p = fieldToThree(shape.x + Math.cos(a) * rIn, shape.y + Math.sin(a) * rIn);
+    const davitInner = fieldToThree(shape.x + Math.cos(a) * (STEAM_TANK_DIAGONAL_IN / 2), shape.y + Math.sin(a) * (STEAM_TANK_DIAGONAL_IN / 2));
+    group.add(strut(
+      new THREE.Vector3(davitInner.x, railTopFt + inToFt(2), davitInner.z),
+      new THREE.Vector3(p.x, railTopFt + inToFt(2), p.z),
+      inToFt(3),
+      davitMaterial
+    ));
     group.add(strut(
       new THREE.Vector3(p.x, 0, p.z),
       new THREE.Vector3(p.x, railTopFt, p.z),
@@ -467,6 +549,40 @@ function addAirship(
     pad.position.set(p.x, inToFt(TOUCHPAD_HEIGHT_IN), p.z);
     pad.rotation.y = a;
     group.add(pad);
+  }
+
+  // 9. Pilot access ladder on one flank wall, climbing from the deck to
+  //    the rail alongside the flared glazing.
+  {
+    const ladderMaterial = solid(COPPER_LIGHT);
+    const i = 1;
+    const dPt = deckPts[i];
+    const rPt = railPts[i];
+    const radial = Math.hypot(dPt.x, dPt.z) || 1;
+    const tangentX = -dPt.z / radial;
+    const tangentZ = dPt.x / radial;
+    const sideOffsetFt = inToFt(5.5);
+    const rails: Array<{ bottom: THREE.Vector3; top: THREE.Vector3 }> = [];
+    for (const side of [-1, 1]) {
+      const bottom = new THREE.Vector3(
+        center.x + dPt.x + tangentX * sideOffsetFt * side,
+        deckFt,
+        center.z + dPt.z + tangentZ * sideOffsetFt * side
+      );
+      const top = new THREE.Vector3(
+        center.x + rPt.x + tangentX * sideOffsetFt * side,
+        railTopFt,
+        center.z + rPt.z + tangentZ * sideOffsetFt * side
+      );
+      rails.push({ bottom, top });
+      group.add(strut(bottom, top, inToFt(1.6), ladderMaterial));
+    }
+    for (let r = 1; r <= 6; r++) {
+      const f = r / 7;
+      const a = new THREE.Vector3().lerpVectors(rails[0].bottom, rails[0].top, f);
+      const b = new THREE.Vector3().lerpVectors(rails[1].bottom, rails[1].top, f);
+      group.add(strut(a, b, inToFt(1.3), ladderMaterial));
+    }
   }
 }
 
@@ -929,6 +1045,59 @@ function strut(from: THREE.Vector3, to: THREE.Vector3, diameterFt: number, mater
   mesh.position.copy(from).addScaledVector(delta, 0.5);
   // CylinderGeometry runs along +Y; rotate that onto the strut's axis.
   mesh.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), delta.clone().normalize());
+  return mesh;
+}
+
+/**
+ * A trapezoidal panel (with a round-topped arch hole) spanning four
+ * world-space corners -- two "bottom" points and two "top" points, matched
+ * pairwise (b0<->t0 on one edge, b1<->t1 on the other). Builds its own local
+ * basis from the corners so it needs no field-rotation convention at all,
+ * just four already-correct points (e.g. from localHex + a deck height).
+ */
+function panelFromCorners(
+  b0: THREE.Vector3,
+  b1: THREE.Vector3,
+  t0: THREE.Vector3,
+  t1: THREE.Vector3,
+  thickness: number,
+  material: THREE.Material
+): THREE.Mesh {
+  const midB = new THREE.Vector3().addVectors(b0, b1).multiplyScalar(0.5);
+  const midT = new THREE.Vector3().addVectors(t0, t1).multiplyScalar(0.5);
+  const u = new THREE.Vector3().subVectors(b1, b0);
+  const widthBot = u.length();
+  u.normalize();
+  const v = new THREE.Vector3().subVectors(midT, midB);
+  const height = v.length();
+  v.normalize();
+  const w = new THREE.Vector3().crossVectors(u, v).normalize();
+  const widthTop = new THREE.Vector3().subVectors(t1, t0).length();
+
+  const shape = new THREE.Shape();
+  shape.moveTo(-widthBot / 2, 0);
+  shape.lineTo(widthBot / 2, 0);
+  shape.lineTo(widthTop / 2, height);
+  shape.lineTo(-widthTop / 2, height);
+  shape.closePath();
+
+  // Round-topped arch cut through the panel, as in the reference render.
+  const aw = Math.min(widthBot, widthTop) * 0.28;
+  const sill = height * 0.04;
+  const spring = height * 0.62;
+  const hole = new THREE.Path();
+  hole.moveTo(-aw, sill);
+  hole.lineTo(-aw, spring);
+  hole.absarc(0, spring, aw, Math.PI, 0, true);
+  hole.lineTo(aw, sill);
+  hole.closePath();
+  shape.holes.push(hole);
+
+  const geometry = new THREE.ExtrudeGeometry(shape, { depth: thickness, bevelEnabled: false });
+  geometry.translate(0, 0, -thickness / 2);
+  const mesh = new THREE.Mesh(geometry, material);
+  mesh.quaternion.setFromRotationMatrix(new THREE.Matrix4().makeBasis(u, v, w));
+  mesh.position.copy(midB);
   return mesh;
 }
 
